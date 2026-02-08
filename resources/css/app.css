@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+    --color-sorteo-green: #00a650;
+    --color-sorteo-dark: #1a1a1a;
+    --color-sorteo-gray: #e5e7eb;
+}
+
+@layer base {
+    body {
+        @apply font-sans antialiased text-gray-900 bg-white;
+    }
+}
