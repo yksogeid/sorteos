@@ -12,11 +12,13 @@ return new class extends Migration {
     {
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('venta_id')->constrained('ventas')->onDelete('cascade');
-            $table->foreignId('sorteo_id')->constrained('sorteos')->onDelete('cascade');
             $table->string('numero');
+            $table->boolean('available')->default(true);
+            $table->boolean('belongs_to_anticipated_prize')->default(false);
+            $table->string('anticipated_prize_name')->nullable();
+            $table->foreignId('sorteo_id')->constrained('sorteos')->onDelete('cascade');
+            $table->foreignId('venta_id')->nullable()->constrained('ventas')->onDelete('set null');
             $table->timestamps();
-
         });
     }
 

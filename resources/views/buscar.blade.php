@@ -46,9 +46,15 @@
                             </div>
                         @endforeach
                     </div>
-                    @ else
-                    <div class="text-center text-gray-500 py-12">
-                        No se encontraron resultados
+                @else
+                    <div class="text-center py-16 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl text-gray-400">🎟️</span>
+                        </div>
+                        <h3 class="text-xl font-black text-black uppercase tracking-tight mb-2">Sin resultados</h3>
+                        <p class="text-gray-500 font-medium">No tienes tickets asociados a este correo electrónico.</p>
+                        <p class="text-xs text-gray-400 mt-4 italic">Verifica que el correo ingresado sea el mismo que usaste al
+                            comprar.</p>
                     </div>
                 @endif
             @endif

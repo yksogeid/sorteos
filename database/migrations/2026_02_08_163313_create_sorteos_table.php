@@ -21,6 +21,9 @@ return new class extends Migration {
             $table->boolean('activo')->default(true);
             $table->json('premios')->nullable();
             $table->json('numeros_anticipados')->nullable();
+            $table->integer('porcentaje_manual')->default(0);
+            $table->boolean('proceso_manual')->default(false);
+            $table->softDeletes();
             $table->timestamps();
 
         });

@@ -8,6 +8,7 @@ use App\Models\Venta;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VentaExitosaMail;
 
@@ -15,9 +16,33 @@ class SorteoController extends Controller
 {
     public function index()
     {
-        $sorteo = Sorteo::with('paquetes')->where('activo', true)->first();
-        if (!$sorteo)
-            abort(404, 'No hay sorteos activos.');
+        $sorteos = Sorteo::where('activo', true)
+            ->withCount([
+                'tickets as disponibles_count' => function ($query) {
+                    $query->where('available', true);
+                }
+            ])
+            ->get();
+
+        if ($sorteos->count() === 1) {
+            return redirect()->route('sorteo.show', $sorteos->first());
+        }
+
+        return view('home', compact('sorteos'));
+    }
+
+    public function show(Sorteo $sorteo)
+    {
+        if (!$sorteo->activo) {
+            abort(404);
+        }
+
+        $sorteo->load('paquetes');
+        $sorteo->loadCount([
+            'tickets as disponibles_count' => function ($query) {
+                $query->where('available', true);
+            }
+        ]);
 
         return view('index', compact('sorteo'));
     }
@@ -75,69 +100,96 @@ class SorteoController extends Controller
 
         $sorteo = Sorteo::findOrFail($request->sorteo_id);
 
-        $venta = Venta::create([
-            'sorteo_id' => $sorteo->id,
-            'nombre_cliente' => $request->nombre,
-            'email_cliente' => $request->email,
-            'telefono_cliente' => $request->telefono,
-            'total' => $request->total,
-        ]);
+        // Cantidad de tickets a comprar
+        $cantidadTickets = ($request->paquete_id)
+            ? (Paquete::findOrFail($request->paquete_id)->cantidad * $request->cantidad)
+            : $request->cantidad;
 
-        // Determinar cuántos tickets generar
-        $cantidadTickets = 0;
-        if ($request->paquete_id) {
-            $paquete = Paquete::findOrFail($request->paquete_id);
-            $cantidadTickets = $paquete->cantidad * $request->cantidad;
-        } else {
-            $cantidadTickets = $request->cantidad;
+        // Verificar disponibilidad real en base a tickets pre-generados
+        $ticketsDisponiblesCount = $sorteo->tickets()->where('available', true)->count();
+        if ($ticketsDisponiblesCount < $cantidadTickets) {
+            return back()->with('error', 'Lo sentimos, solo quedan ' . $ticketsDisponiblesCount . ' tickets disponibles.');
         }
 
-        // Generar tickets
-        $ticketsGenerados = $this->generateRandomTickets($sorteo, $cantidadTickets);
-
+        $premiosGanados = [];
         $ticketModels = [];
-        foreach ($ticketsGenerados as $num) {
-            $ticketModels[] = Ticket::create([
-                'venta_id' => $venta->id,
-                'sorteo_id' => $sorteo->id,
-                'numero' => $num,
-            ]);
-        }
+        $venta = null;
 
-        // Actualizar contador del sorteo
-        $sorteo->increment('tickets_vendidos', $cantidadTickets);
+        DB::transaction(function () use ($request, $sorteo, $cantidadTickets, &$venta, &$ticketModels, &$premiosGanados) {
+            $venta = Venta::create([
+                'sorteo_id' => $sorteo->id,
+                'nombre_cliente' => $request->nombre,
+                'email_cliente' => $request->email,
+                'telefono_cliente' => $request->telefono,
+                'total' => $request->total,
+            ]);
+
+            // 1. Intentar asignar tickets que TIENEN PREMIO primero (lógica de probabilidad)
+            $ticketsConPremio = $sorteo->tickets()
+                ->where('available', true)
+                ->where('belongs_to_anticipated_prize', true)
+                ->get();
+
+            $cantidadPremiosAEntregar = 0;
+            if ($ticketsConPremio->count() > 0) {
+                $totalRestantes = $sorteo->tickets()->where('available', true)->count();
+                for ($i = 0; $i < $cantidadTickets; $i++) {
+                    // Si la suerte lo permite y el pool de premios no se ha agotado en este loop
+                    if (count($ticketModels) < $cantidadTickets && rand(1, $totalRestantes) <= $ticketsConPremio->count()) {
+                        $cantidadPremiosAEntregar++;
+                    }
+                }
+            }
+
+            // Asignar los tickets premiados seleccionados
+            if ($cantidadPremiosAEntregar > 0) {
+                $prizesToAssign = $ticketsConPremio->shuffle()->take($cantidadPremiosAEntregar);
+                foreach ($prizesToAssign as $ticket) {
+                    $ticket->update(['available' => false, 'venta_id' => $venta->id]);
+                    $ticketModels[] = $ticket;
+                    $premiosGanados[] = [
+                        'numero' => $ticket->numero,
+                        'premio' => $ticket->anticipated_prize_name
+                    ];
+                }
+            }
+
+            // 2. Asignar el resto de tickets de forma aleatoria de los que NO tienen premio (o no se seleccionaron como tales)
+            $restantes = $cantidadTickets - count($ticketModels);
+            if ($restantes > 0) {
+                $ticketsAzar = $sorteo->tickets()
+                    ->where('available', true)
+                    ->inRandomOrder()
+                    ->take($restantes)
+                    ->get();
+
+                foreach ($ticketsAzar as $ticket) {
+                    $ticket->update(['available' => false, 'venta_id' => $venta->id]);
+                    $ticketModels[] = $ticket;
+
+                    // Si por puro azar sacó uno premiado que no forzamos arriba
+                    if ($ticket->belongs_to_anticipated_prize) {
+                        $premiosGanados[] = [
+                            'numero' => $ticket->numero,
+                            'premio' => $ticket->anticipated_prize_name
+                        ];
+                    }
+                }
+            }
+
+            $sorteo->increment('tickets_vendidos', $cantidadTickets);
+        });
 
         // Enviar Correo
         try {
             Mail::to($venta->email_cliente)->send(new VentaExitosaMail($venta, $ticketModels));
         } catch (\Exception $e) {
-            // Log error or ignore for demo if mail is not configured
             \Log::error("Error enviando correo: " . $e->getMessage());
         }
 
-        return view('confirmacion', ['tickets' => $ticketModels]);
-    }
-
-    private function generateRandomTickets($sorteo, $cantidad)
-    {
-        $tickets = [];
-        $totalPossible = $sorteo->total_tickets;
-
-        $taken = Ticket::where('sorteo_id', $sorteo->id)->pluck('numero')->toArray();
-
-        // Use a set for faster lookup
-        $takenSet = array_flip($taken);
-        $newTickets = [];
-
-        $attempts = 0;
-        while (count($newTickets) < $cantidad && $attempts < 1000) {
-            $num = str_pad(rand(0, $totalPossible - 1), 5, '0', STR_PAD_LEFT);
-            if (!isset($takenSet[$num]) && !isset($newTickets[$num])) {
-                $newTickets[$num] = true;
-            }
-            $attempts++;
-        }
-
-        return array_keys($newTickets);
+        return view('confirmacion', [
+            'tickets' => $ticketModels,
+            'premiosGanados' => $premiosGanados
+        ]);
     }
 }
