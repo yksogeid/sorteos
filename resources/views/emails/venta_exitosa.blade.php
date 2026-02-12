@@ -56,7 +56,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>GANA CON KELVIN</h1>
+            <h1>{{ strtoupper(\App\Models\Setting::get('site_title', 'Sorteos')) }}</h1>
         </div>
         <div class="content">
             <h2>¡Hola {{ $venta->nombre_cliente }}!</h2>
@@ -77,7 +77,7 @@
         </div>
         <div class="footer">
             <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
-            <p>&copy; 2026 Gana con Kelvin</p>
+            <p>&copy; {{ date('Y') }} {{ \App\Models\Setting::get('site_title', 'Sorteos') }}</p>
         </div>
     </div>
 </body>

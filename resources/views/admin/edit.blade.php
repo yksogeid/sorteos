@@ -251,31 +251,40 @@
                                 class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700 transition">Guardar</button>
                         </div>
                     </div>
-                    <div id="anticipados-list" class="space-y-4 text-left">
+                    <div id="anticipados-list" class="space-y-6 text-left">
                         @foreach($sorteo->numeros_anticipados ?? [] as $groupIndex => $item)
                             <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200 relative group"
                                 id="anticipado-{{ $groupIndex }}">
-                                <input type="text" name="numeros_anticipados[{{$groupIndex}}][titulo]"
-                                    placeholder="Ej: Bono $500k" value="{{$item['titulo']}}"
-                                    class="w-full bg-white border-slate-200 rounded-lg px-3 py-2 text-sm font-bold mb-4 focus:border-indigo-500 outline-none">
+                                <div class="flex flex-col md:flex-row gap-4 mb-4">
+                                    <div class="flex-1">
+                                         <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Título del Premio</label>
+                                         <input type="text" name="numeros_anticipados[{{$groupIndex}}][titulo]"
+                                            placeholder="Ej: Bono $500k" value="{{$item['titulo']}}"
+                                            class="w-full bg-white border-slate-200 rounded-lg px-3 py-2 text-sm font-bold focus:border-indigo-500 outline-none">
+                                    </div>
+                                </div>
 
                                 <div class="space-y-3">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Números
-                                            Ganadores</span>
-                                        <button type="button" onclick="openPicker({{ $groupIndex }})"
-                                            class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md font-black hover:bg-indigo-100 transition-colors uppercase">🔍
-                                            Seleccionar de la lista</button>
+                                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Carga Rápida (Lista o Rango ej: 100-120)</span>
                                     </div>
-                                    <div id="group-nums-{{ $groupIndex }}" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    
+                                    <div class="flex gap-2">
+                                        <input type="text" id="quick-input-{{ $groupIndex }}" placeholder="Escribe números separados por coma..." 
+                                            class="flex-1 bg-white border-slate-200 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                                            onkeypress="if(event.key === 'Enter') { event.preventDefault(); processQuickInput({{ $groupIndex }}); }">
+                                        <button type="button" onclick="processQuickInput({{ $groupIndex }})" 
+                                            class="bg-indigo-100 text-indigo-600 px-3 py-2 rounded-lg text-xs font-black">+</button>
+                                        <button type="button" onclick="openPicker({{ $groupIndex }})"
+                                            class="bg-slate-200 text-slate-600 px-3 py-2 rounded-lg text-xs font-black">🔍</button>
+                                    </div>
+
+                                    <div id="group-nums-{{ $groupIndex }}" class="flex flex-wrap gap-2 pt-2">
                                         @foreach($item['numeros'] as $num)
-                                            <div
-                                                class="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-1.5 animate-in fade-in zoom-in duration-200">
-                                                <input type="text" name="numeros_anticipados[{{$groupIndex}}][numeros][]"
-                                                    value="{{ $num }}"
-                                                    class="w-full bg-transparent border-none p-0 text-xs font-bold font-mono text-center focus:ring-0">
-                                                <button type="button" onclick="this.parentElement.remove()"
-                                                    class="text-red-400 hover:text-red-600 text-sm leading-none">×</button>
+                                            <div class="flex items-center gap-1.5 bg-indigo-600 text-white rounded-lg pl-3 pr-1 py-1 animate-in fade-in zoom-in duration-200">
+                                                <span class="text-[11px] font-mono font-bold">{{ $num }}</span>
+                                                <input type="hidden" name="numeros_anticipados[{{$groupIndex}}][numeros][]" value="{{ $num }}">
+                                                <button type="button" onclick="this.parentElement.remove()" class="w-5 h-5 flex items-center justify-center hover:bg-black/20 rounded-md transition-colors">×</button>
                                             </div>
                                         @endforeach
                                     </div>
@@ -291,48 +300,44 @@
         </div>
     </div>
 
-    <!-- Modal de Selección de Números -->
-        <div id="numberPickerModal" class="fixed inset-0 z-[100] hidden overflow-y-auto">
-            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 transition-opacity bg-black/60" onclick="closePicker()"></div>
-
-                <div class="inline-block w-full max-w-4xl overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-[2rem] sm:my-8">
-                    <div class="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                        <div>
-                            <h3 class="text-xl font-bold text-slate-800">Seleccionar Números Disponibles</h3>
-                            <p class="text-xs text-slate-400 font-medium">Haz clic en los números para añadirlos. Desplázate para ver más.</p>
-                        </div>
-                        <button onclick="closePicker()" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-full text-slate-400 hover:text-red-500 transition-all hover:shadow-lg">×</button>
+    <!-- Modal de Selección de Números (Mejorado) -->
+    <div id="numberPickerModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div class="p-8 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Seleccionar Tickets</h3>
+                    <p class="text-xs text-slate-400">Selecciona los números disponibles para este premio.</p>
+                </div>
+                <div class="flex gap-4">
+                    <div class="relative">
+                        <input type="text" id="pickerSearch" placeholder="Buscar número..." 
+                               class="bg-slate-50 border-slate-200 rounded-xl px-4 py-2 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none w-48"
+                               oninput="handlePickerSearch()">
                     </div>
-
-                    <div class="p-0 max-h-[500px] overflow-y-auto custom-scrollbar" onscroll="handlePickerScroll(this)">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
-                                <tr>
-                                    <th class="py-4 px-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Estado</th>
-                                    <th class="py-4 px-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Número de Ticket</th>
-                                    <th class="py-4 px-8 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody id="searchResults">
-                                <!-- Filas se cargarán aquí -->
-                            </tbody>
-                        </table>
-                        <div id="pickerLoading" class="hidden py-12 text-center">
-                            <div class="inline-block w-8 h-8 border-4 border-slate-200 border-t-black rounded-full animate-spin"></div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase mt-4 tracking-widest">Cargando tickets...</p>
-                        </div>
-                    </div>
-
-                    <div class="p-6 bg-white border-t border-slate-100 flex justify-between items-center px-8">
-                        <div id="selectedCountDisplay" class="text-xs font-bold text-slate-500">
-                            <span id="selectedCounter">0</span> números seleccionados
-                        </div>
-                        <button onclick="closePicker()" class="bg-black text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-slate-800 shadow-xl transition-all active:scale-95">Listo, Finalizar Selección</button>
-                    </div>
+                    <button onclick="closePicker()" class="w-10 h-10 flex items-center justify-center bg-slate-50 rounded-full text-slate-400 hover:text-red-500">×</button>
                 </div>
             </div>
+
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar" id="pickerContainer" onscroll="handlePickerScroll(this)">
+                <div id="searchResults" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                    <!-- Tickets cargados dinámicamente -->
+                </div>
+                
+                <div id="pickerLoading" class="hidden py-10 text-center">
+                    <div class="inline-block w-6 h-6 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                </div>
+            </div>
+
+            <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center px-10">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    <span id="selectedCounter" class="text-indigo-600">0</span> Seleccionados
+                </div>
+                <button onclick="closePicker()" class="bg-black text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-slate-800 transition-all">
+                    Terminar Selección
+                </button>
+            </div>
         </div>
+    </div>
 
         <style>
             .custom-scrollbar::-webkit-scrollbar { width: 6px; }
@@ -350,15 +355,63 @@
             let pickerCurrentPage = 1;
             let pickerIsLoading = false;
             let pickerHasMore = true;
-            let selectedNumbers = new Set();
+            let pickerSearchQuery = '';
+            let pickerSearchTimeout = null;
 
+            // --- SISTEMA DE CARGA RÁPIDA (COMAS Y RANGOS) ---
+            function processQuickInput(groupIdx) {
+                const input = document.getElementById(`quick-input-${groupIdx}`);
+                const value = input.value.trim();
+                if (!value) return;
+
+                // Separar por comas, espacios o saltos de línea
+                const parts = value.split(/[\s,\n]+/);
+                
+                parts.forEach(part => {
+                    if (part.includes('-')) {
+                        // Es un rango (ej: 100-110)
+                        const range = part.split('-');
+                        const start = parseInt(range[0]);
+                        const end = parseInt(range[1]);
+                        if (!isNaN(start) && !isNaN(end)) {
+                            for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
+                                addNumberTag(groupIdx, i.toString().padStart(5, '0'));
+                            }
+                        }
+                    } else if (part.length > 0) {
+                        // Es un número individual
+                        addNumberTag(groupIdx, part.padStart(5, '0'));
+                    }
+                });
+
+                input.value = '';
+            }
+
+            function addNumberTag(groupIdx, number) {
+                const container = document.getElementById(`group-nums-${groupIdx}`);
+                
+                // Evitar duplicados en el mismo grupo
+                const existing = Array.from(container.querySelectorAll('input[type="hidden"]'))
+                                     .map(i => i.value);
+                if (existing.includes(number)) return;
+
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-1.5 bg-indigo-600 text-white rounded-lg pl-3 pr-1 py-1 animate-in fade-in zoom-in duration-200';
+                div.innerHTML = `
+                    <span class="text-[11px] font-mono font-bold">${number}</span>
+                    <input type="hidden" name="numeros_anticipados[${groupIdx}][numeros][]" value="${number}">
+                    <button type="button" onclick="this.parentElement.remove()" class="w-5 h-5 flex items-center justify-center hover:bg-black/20 rounded-md transition-colors">×</button>
+                `;
+                container.appendChild(div);
+            }
+
+            // --- SISTEMA DE SELECTOR (MODAL) ---
             function openPicker(groupIdx) {
                 activeGroupForPicker = groupIdx;
                 pickerCurrentPage = 1;
                 pickerHasMore = true;
-                selectedNumbers.clear();
-                document.getElementById('selectedCounter').innerText = '0';
-
+                pickerSearchQuery = '';
+                document.getElementById('pickerSearch').value = '';
                 document.getElementById('numberPickerModal').classList.remove('hidden');
                 document.getElementById('searchResults').innerHTML = '';
                 loadMoreTickets();
@@ -366,12 +419,22 @@
 
             function closePicker() {
                 document.getElementById('numberPickerModal').classList.add('hidden');
-                activeGroupForPicker = null;
+            }
+
+            function handlePickerSearch() {
+                clearTimeout(pickerSearchTimeout);
+                pickerSearchTimeout = setTimeout(() => {
+                    pickerSearchQuery = document.getElementById('pickerSearch').value;
+                    pickerCurrentPage = 1;
+                    pickerHasMore = true;
+                    document.getElementById('searchResults').innerHTML = '';
+                    loadMoreTickets();
+                }, 300);
             }
 
             function handlePickerScroll(el) {
                 if (pickerIsLoading || !pickerHasMore) return;
-                if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
+                if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
                     loadMoreTickets();
                 }
             }
@@ -383,86 +446,50 @@
                 document.getElementById('pickerLoading').classList.remove('hidden');
 
                 try {
-                    const response = await fetch(`{{ route('admin.tickets.search', $sorteo) }}?page=${pickerCurrentPage}`);
+                    const url = `{{ route('admin.tickets.search', $sorteo) }}?page=${pickerCurrentPage}&q=${pickerSearchQuery}`;
+                    const response = await fetch(url);
                     const tickets = await response.json();
 
                     if (tickets.length === 0) {
                         pickerHasMore = false;
+                        if (pickerCurrentPage === 1) {
+                            document.getElementById('searchResults').innerHTML = '<div class="col-span-full py-10 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">No se encontraron tickets</div>';
+                        }
                     } else {
                         const results = document.getElementById('searchResults');
                         tickets.forEach(t => {
-                            const tr = document.createElement('tr');
-                            tr.className = 'border-b border-slate-100 hover:bg-slate-50 transition-colors group';
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            
+                            const isAvailable = t.available;
+                            btn.disabled = !isAvailable;
+                            btn.className = `p-3 rounded-2xl border flex flex-col items-center justify-center gap-1 transition-all group ${
+                                isAvailable 
+                                ? 'bg-white border-slate-100 hover:border-indigo-500 hover:shadow-lg active:scale-95' 
+                                : 'bg-slate-50 border-transparent opacity-50 grayscale cursor-not-allowed'
+                            }`;
 
-                            const statusHtml = t.available 
-                                ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-600 uppercase">Disponible</span>`
-                                : `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-400 uppercase">Vendido</span>`;
+                            btn.onclick = () => {
+                                addNumberTag(activeGroupForPicker, t.numero);
+                                btn.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-50');
+                                const total = document.getElementById(`group-nums-${activeGroupForPicker}`).children.length;
+                                document.getElementById('selectedCounter').innerText = total;
+                            };
 
-                            const actionHtml = t.available
-                                ? `<button type="button" onclick="handleTicketSelection(event, '${t.numero}', this)" 
-                                    class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all">Seleccionar</button>`
-                                : `<span class="text-[10px] font-bold text-slate-300 uppercase px-4">Bloqueado</span>`;
-
-                            tr.innerHTML = `
-                                <td class="py-4 px-8">${statusHtml}</td>
-                                <td class="py-4 px-8 font-mono font-bold text-slate-700">${t.numero}</td>
-                                <td class="py-4 px-8 text-right">${actionHtml}</td>
+                            btn.innerHTML = `
+                                <span class="text-[10px] font-black uppercase ${isAvailable ? 'text-indigo-400' : 'text-slate-400'}">#${t.numero}</span>
+                                <span class="text-[10px] font-bold ${isAvailable ? 'text-emerald-500' : 'text-slate-500'}">${isAvailable ? 'DISPONIBLE' : 'VENDIDO'}</span>
                             `;
-                            results.appendChild(tr);
+                            results.appendChild(btn);
                         });
                         pickerCurrentPage++;
                     }
                 } catch (error) {
-                    console.error('Error loading tickets:', error);
+                    console.error('Error:', error);
                 } finally {
                     pickerIsLoading = false;
                     document.getElementById('pickerLoading').classList.add('hidden');
                 }
-            }
-
-            window.handleTicketSelection = function(event, number, btnEl) {
-                event.preventDefault();
-                event.stopPropagation();
-
-                if (selectedNumbers.has(number)) return;
-
-                console.log("Seleccionando ticket:", number, "en grupo:", activeGroupForPicker);
-
-                const success = addNumberToGroup(activeGroupForPicker, number);
-
-                if (success) {
-                    selectedNumbers.add(number);
-                    document.getElementById('selectedCounter').innerText = selectedNumbers.size;
-
-                    // Feedback visual
-                    const rowEl = btnEl.closest('tr');
-                    if (rowEl) rowEl.classList.add('bg-emerald-50');
-
-                    btnEl.innerText = ' Añadido ✓';
-                    btnEl.classList.remove('bg-slate-100', 'text-slate-600', 'hover:bg-black');
-                    btnEl.classList.add('bg-emerald-500', 'text-white');
-                    btnEl.disabled = true;
-                    btnEl.removeAttribute('onclick');
-                }
-            }
-
-            function addNumberToGroup(groupIdx, number = '') {
-                const container = document.getElementById(`group-nums-${groupIdx}`);
-                if (!container) {
-                    console.error("No se encontró el contenedor group-nums-" + groupIdx);
-                    alert("Error: Por favor vuelve a abrir el selector.");
-                    return false;
-                }
-
-                const div = document.createElement('div');
-                div.className = 'flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-1.5 animate-in fade-in zoom-in duration-200';
-                div.innerHTML = `
-                    <input type="text" name="numeros_anticipados[${groupIdx}][numeros][]" value="${number}" placeholder="00000"
-                        class="w-full bg-transparent border-none p-0 text-xs font-bold font-mono text-center focus:ring-0">
-                    <button type="button" onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 text-sm leading-none">×</button>
-                `;
-                container.appendChild(div);
-                return true;
             }
 
             function addItem(containerId, type) {
@@ -486,34 +513,27 @@
                 } else if (type === 'premio') {
                     html = `
                         <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4 relative group text-left">
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nombre del Puesto</label>
-                                <input type="text" name="premios[${premioIdx}][nombre]" placeholder="Ej: Premio Mayor" class="w-full bg-white border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Regalo(s)</label>
-                                <input type="text" name="premios[${premioIdx}][prizes][]" placeholder="Ej: Moto XTZ" class="w-full bg-white border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none">
-                            </div>
-                            <div class="pt-2">
-                                <input type="file" name="premios[${premioIdx}][imagen]" class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-slate-200 file:text-slate-700">
-                            </div>
+                            <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nombre del Puesto</label><input type="text" name="premios[${premioIdx}][nombre]" class="w-full bg-white border-slate-200 rounded-lg px-3 py-2 text-sm font-bold"></div>
+                            <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Regalo(s)</label><input type="text" name="premios[${premioIdx}][prizes][]" class="w-full bg-white border-slate-200 rounded-lg px-3 py-2 text-sm font-medium"></div>
+                            <div class="pt-2"><input type="file" name="premios[${premioIdx}][imagen]" class="block w-full text-xs text-slate-500"></div>
                             <button type="button" onclick="this.parentElement.remove()" class="absolute -top-3 -right-3 w-8 h-8 bg-white border border-slate-200 text-red-500 rounded-full flex items-center justify-center shadow-lg">🗑️</button>
                         </div>`;
                     premioIdx++;
                 } else if (type === 'anticipado') {
-                    const currentIdx = anticipadoIdx;
+                    const idx = anticipadoIdx;
                     html = `
-                        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200 relative group text-left" id="anticipado-${currentIdx}">
-                            <input type="text" name="numeros_anticipados[${currentIdx}][titulo]" placeholder="Ej: Bono $500k"
-                                class="w-full bg-white border-slate-200 rounded-lg px-3 py-2 text-sm font-bold mb-4 focus:border-indigo-500 outline-none">
+                        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200 relative group text-left" id="anticipado-${idx}">
+                            <div class="flex flex-col md:flex-row gap-4 mb-4">
+                                <div class="flex-1"><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Título del Premio</label><input type="text" name="numeros_anticipados[${idx}][titulo]" placeholder="Bono $..." class="w-full bg-white border-slate-200 rounded-lg px-3 py-2 text-sm font-bold focus:border-indigo-500 outline-none"></div>
+                            </div>
                             <div class="space-y-3">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Números Ganadores</span>
-                                    <button type="button" onclick="openPicker(${currentIdx})" class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md font-black hover:bg-indigo-100 transition-colors uppercase">🔍 Seleccionar de la lista</button>
+                                <div class="flex items-center justify-between"><span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Carga Rápida</span></div>
+                                <div class="flex gap-2">
+                                    <input type="text" id="quick-input-${idx}" placeholder="..." class="flex-1 bg-white border-slate-200 rounded-lg px-3 py-2 text-xs outline-none" onkeypress="if(event.key === 'Enter') { event.preventDefault(); processQuickInput(${idx}); }">
+                                    <button type="button" onclick="processQuickInput(${idx})" class="bg-indigo-100 text-indigo-600 px-3 py-2 rounded-lg text-xs font-black">+</button>
+                                    <button type="button" onclick="openPicker(${idx})" class="bg-slate-200 text-slate-600 px-3 py-2 rounded-lg text-xs font-black">🔍</button>
                                 </div>
-                                <div id="group-nums-${currentIdx}" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                    <!-- Números aparecerán aquí -->
-                                </div>
+                                <div id="group-nums-${idx}" class="flex flex-wrap gap-2 pt-2"></div>
                             </div>
                             <button type="button" onclick="this.parentElement.remove()" class="absolute -top-3 -right-3 w-8 h-8 bg-white border border-slate-200 text-red-500 rounded-full flex items-center justify-center shadow-md">🗑️</button>
                         </div>`;

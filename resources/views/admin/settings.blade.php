@@ -45,6 +45,37 @@
 
                     <hr class="border-slate-100">
 
+                    <!-- Favicon Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+                        <div>
+                            <h4 class="font-bold text-slate-700 mb-1">Favicon (Icono de Pestaña)</h4>
+                            <p class="text-xs text-slate-400">El icono pequeño que aparece en la pestaña del navegador.</p>
+                        </div>
+                        <div class="md:col-span-2 space-y-4">
+                            <div class="flex items-center gap-6">
+                                <div
+                                    class="w-12 h-12 bg-slate-100 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden">
+                                    @if($settings['favicon'])
+                                        <img src="{{ asset('storage/' . $settings['favicon']) }}"
+                                            class="w-full h-full object-contain p-1">
+                                    @else
+                                        <span class="text-xl">📍</span>
+                                    @endif
+                                </div>
+                                <div class="flex-1">
+                                    <input type="file" name="favicon" id="favicon" class="sr-only">
+                                    <label for="favicon"
+                                        class="inline-flex items-center px-4 py-2 bg-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-300 cursor-pointer transition-all">
+                                        Subir Favicon
+                                    </label>
+                                    <p class="text-[10px] text-slate-400 mt-2 italic">Formato recomendado: PNG circular o ICO (32x32px).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-100">
+
                     <!-- Banner Section -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
                         <div>
@@ -97,6 +128,12 @@
                                     <input type="text" name="site_slogan" value="{{ $settings['site_slogan'] }}"
                                         class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium focus:ring-2 focus:ring-black/5 focus:border-black transition-all outline-none">
                                 </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Correo de Contacto</label>
+                                    <input type="email" name="site_email" value="{{ $settings['site_email'] }}"
+                                        class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium focus:ring-2 focus:ring-black/5 focus:border-black transition-all outline-none">
+                                </div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -130,6 +167,33 @@
                                             class="w-full bg-slate-50 border-slate-200 rounded-xl pl-10 pr-4 py-3 text-slate-900 font-bold focus:ring-2 focus:ring-black/5 focus:border-black transition-all outline-none">
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-100">
+
+                    <!-- Footer Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+                        <div>
+                            <h4 class="font-bold text-slate-700 mb-1">Pie de Página (Footer)</h4>
+                            <p class="text-xs text-slate-400">Personaliza los textos que aparecen al final de la web.</p>
+                        </div>
+                        <div class="md:col-span-2 space-y-6">
+                            <div>
+                                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Descripción Corta (Bajo el Logo)</label>
+                                <textarea name="site_description" rows="2"
+                                    class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium focus:ring-2 focus:ring-black/5 focus:border-black transition-all outline-none">{{ $settings['site_description'] }}</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Texto "Sobre Nosotros" (Footer)</label>
+                                <textarea name="footer_about" rows="2"
+                                    class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium focus:ring-2 focus:ring-black/5 focus:border-black transition-all outline-none">{{ $settings['footer_about'] }}</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Texto de Copyright</label>
+                                <input type="text" name="footer_copyright" value="{{ $settings['footer_copyright'] }}"
+                                    class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium focus:ring-2 focus:ring-black/5 focus:border-black transition-all outline-none">
                             </div>
                         </div>
                     </div>

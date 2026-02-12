@@ -7,7 +7,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Queue\SerializesModels;
+use App\Models\Setting;
 use App\Models\Venta;
 
 class VentaExitosaMail extends Mailable
@@ -25,8 +27,12 @@ class VentaExitosaMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $siteTitle = Setting::get('site_title', config('mail.from.name'));
+        $siteEmail = Setting::get('site_email', config('mail.from.address'));
+
         return new Envelope(
-            subject: 'Confirmación de Compra - Gana con Kelvin',
+            from: new Address($siteEmail, $siteTitle),
+            subject: 'Confirmación de Compra - ' . $siteTitle,
         );
     }
 

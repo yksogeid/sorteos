@@ -43,7 +43,7 @@
 
         <!-- Extra detail -->
         <p class="mt-20 text-[10px] font-black uppercase text-gray-300 tracking-[0.5em] z-10">
-            Gana con Kelvin • Estás a un paso de ganar
+            {{ \App\Models\Setting::get('site_title', 'Sorteos') }} • {{ \App\Models\Setting::get('site_slogan', 'Estás a un paso de ganar') }}
         </p>
     </div>
 @endsection

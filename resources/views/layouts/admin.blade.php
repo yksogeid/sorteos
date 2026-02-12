@@ -4,7 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Gana con Kelvin</title>
+    <title>Admin Panel - {{ \App\Models\Setting::get('site_title', 'Sorteos') }}</title>
+    @if($favicon = \App\Models\Setting::get('favicon'))
+        <link rel="icon" type="image/x-icon" href="{{ asset('storage/' . $favicon) }}">
+    @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -33,7 +36,7 @@
                     <div class="flex items-center gap-3">
                         <img src="https://img.icons8.com/color/48/clover.png" alt="clover" class="w-8 h-8">
                         <h1 class="text-xl font-black italic tracking-tighter uppercase leading-none">
-                            Admin <span class="text-sorteo-green">Kelvin</span>
+                            Admin <span class="text-sorteo-green">{{ \App\Models\Setting::get('site_title', 'Sorteos') }}</span>
                         </h1>
                     </div>
                     <button @click="sidebarOpen = false" class="lg:hidden text-slate-400 hover:text-white">
